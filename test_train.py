@@ -2,12 +2,13 @@ import pandas as pd
 import pytest
 from tensorflow.keras.models import Sequential
 
-from train import (read_data,
+from train_prof import (read_data,
                    create_model,
                    train_model)
 
 
 @pytest.fixture
+#a característica de fixture é que só é executada qdo realmente for precisar dela
 def sample_data():
     """
     A fixture function that returns a sample dataset.
@@ -16,6 +17,7 @@ def sample_data():
         pandas.DataFrame: A DataFrame containing sample data with three columns: 'feature1',
          'feature2', and 'fetal_health'.
     """
+    # Retorna um dataframe
     data = pd.DataFrame({
         'feature1': [1, 2, 3, 4, 5],
         'feature2': [6, 7, 8, 9, 10],
@@ -36,8 +38,8 @@ def test_read_data():
     None
     """
     X, y = read_data()
-
-    assert not X.empty
+    #Assert, está validando q X não está vazio, ou seja, tem algum dado
+    assert not X.empty # Neste momento é q vai ser feito o teste se X não está vazio
     assert not y.empty
 
 
@@ -49,9 +51,9 @@ def test_create_model():
     X, _ = read_data()
     model = create_model(X)
 
-    assert len(model.layers) > 2
-    assert model.trainable
-    assert isinstance(model, Sequential)
+    assert len(model.layers) > 2 #validar se o modelo tem uma camada de entrada e uma de saída
+    assert model.trainable # validar se o modelo é treinável
+    assert isinstance(model, Sequential) # valida se o modelo é sequencial, ou seja, pode-se fazer mais de uma inserção em um mesmo teste
 
 
 def test_train_model(sample_data):

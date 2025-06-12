@@ -56,59 +56,64 @@ def reset_seeds():
    random.seed(42)
 
 """# 2 - Fazendo a leitura do dataset e atribuindo às respectivas variáveis"""
-
-data = pd.read_csv('https://raw.githubusercontent.com/renansantosmendes/lectures-cdas-2023/master/fetal_health_reduced.csv')
-
-
-"""# 3 - Preparando o dado antes de iniciar o treino do modelo"""
-# Preparação dos dados
-X = data.drop(["fetal_health"], axis=1)
-y = data["fetal_health"]
-
-
-columns_names = list(X.columns)
-scaler = StandardScaler()
-X_df = scaler.fit_transform(X)
-X_df = pd.DataFrame(X_df, columns=columns_names)
-
-X_train, X_test, y_train, y_test = train_test_split(X_df, y, test_size=0.3, random_state=42)
-y_train -= 1
-y_test -= 1
+def read_data():
+    data = pd.read_csv('https://raw.githubusercontent.com/renansantosmendes/lectures-cdas-2023/master/fetal_health_reduced.csv')
+    """# 3 - Preparando o dado antes de iniciar o treino do modelo"""
+    # Preparação dos dados
+    X = data.drop(["fetal_health"], axis=1)
+    y = data["fetal_health"]
+    return X,y
 
 
-"""# 4 - Criando o modelo e adicionando as camadas"""
+def process_data(X,y):
+    columns_names = list(X.columns)
+    scaler = StandardScaler()
+    X_df = scaler.fit_transform(X)
+    X_df = pd.DataFrame(X_df, columns=columns_names)
 
-reset_seeds()
-model = Sequential() #modelo Sequencial
-#Adicionando uma camada de entrada
-model.add(InputLayer(input_shape=(X_train.shape[1], )))
-model.add(Dense(10, activation='relu')) #camada densa
-model.add(Dense(10, activation='relu')) #camada densa
-model.add(Dense(3, activation='softmax')) #camada de saída dos dados
+    X_train, X_test, y_train, y_test = train_test_split(X_df, y, test_size=0.3, random_state=42)
+    y_train -= 1
+    y_test -= 1
+    return X_train, X_test, y_train, y_test
 
-"""# 5 - Compilando o modelo
+def create_model(X):
+    """# 4 - Criando o modelo e adicionando as camadas"""
+    reset_seeds()
+    model = Sequential() #modelo Sequencial
+    #Adicionando uma camada de entrada
+    model.add(InputLayer(input_shape=(X.shape[1], )))
+    model.add(Dense(10, activation='relu')) #camada densa
+    model.add(Dense(10, activation='relu')) #camada densa
+    model.add(Dense(3, activation='softmax')) #camada de saída dos dados
+    model.compile(loss='sparse_categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+    return model
 
-"""
+def config_mlflow():
+    # Configuração do MLflow com variáveis de ambiente
 
-model.compile(loss='sparse_categorical_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
-# Configuração do MLflow com variáveis de ambiente
+    os.environ['MLFLOW_TRACKING_USERNAME'] = 'guidolabela'
+    os.environ['MLFLOW_TRACKING_PASSWORD'] = 'f55e8ced06ecb9ebac177f0b994b21f41d37336e'
+    mlflow.set_tracking_uri('https://dagshub.com/guidolabela/POS_IA.mlflow')
 
-os.environ['MLFLOW_TRACKING_USERNAME'] = 'guidolabela'
-os.environ['MLFLOW_TRACKING_PASSWORD'] = 'f55e8ced06ecb9ebac177f0b994b21f41d37336e'
-mlflow.set_tracking_uri('https://dagshub.com/guidolabela/POS_IA.mlflow')
-
-#os.environ['MLFLOW_TRACKING_USERNAME'] = 'renansantosmendes'
-#os.environ['MLFLOW_TRACKING_PASSWORD'] = '6d730ef4a90b1caf28fbb01e5748f0874fda6077'
-#mlflow.set_tracking_uri('https://dagshub.com/renansantosmendes/mlops-ead.mlflow')
-mlflow.tensorflow.autolog(log_models=True, log_input_examples=True, log_model_signatures=True)
+    #os.environ['MLFLOW_TRACKING_USERNAME'] = 'renansantosmendes'
+    #os.environ['MLFLOW_TRACKING_PASSWORD'] = '6d730ef4a90b1caf28fbb01e5748f0874fda6077'
+    #mlflow.set_tracking_uri('https://dagshub.com/renansantosmendes/mlops-ead.mlflow')
+    mlflow.tensorflow.autolog(log_models=True, log_input_examples=True, log_model_signatures=True)
 
 """# 6 - Executando o treino do modelo"""
-
-with mlflow.start_run(run_name='experiment_gad_mlops_ead') as run:
-  model.fit(X_train,
+def train_model(model, X_train, y_train, is_train=True):
+    with mlflow.start_run(run_name='experiment_gad_mlops_ead') as run:
+        model.fit(X_train,
             y_train,
             epochs=50,
             validation_split=0.2,
             verbose=3)
+
+if __name__ == "__main__":
+    X,y = read_data()
+    X_train, X_test, y_train, y_test = process_data(X,y)
+    model = create_model(X)
+    config_mlflow()
+    train_model(model, X_train, y_train)
